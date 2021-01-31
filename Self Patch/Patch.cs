@@ -13,6 +13,7 @@ using System.Net;
 using System.Net.Cache;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Xml;
 
@@ -50,7 +51,7 @@ namespace DSSelfPatch
 
 		private void backgroundWorker1_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
 		{
-			if (this.settings.RemoteLauncherVersion.CompareTo(this.settings.LocalLauncherVersion) < 0)
+			if (this.settings.RemoteLauncherVersion.CompareTo(this.settings.LocalLauncherVersion) > 0)
 			{
 				this.startDownloadBackgroundWorker.RunWorkerAsync();
 				return;
@@ -261,16 +262,12 @@ namespace DSSelfPatch
 				XmlElement xmlElement1 = xmlElement;
 				if (xmlElement != null)
 				{
-				    if (Version.TryParse(xmlElement.InnerText, out Version version))
-				    {
-				        this.settings.LocalLauncherVersion = version;
-				    }
-
-				    else
-				    {
-                        int[] i = xmlElement.InnerText.ToCharArray().Select(Convert.ToInt32).ToArray();
-				        this.settings.LocalLauncherVersion = new Version(i[0], i[1], i[2]);
-				    }
+					String versionS = xmlElement.InnerText;
+					if (Regex.IsMatch(versionS, @"^[+-]?\d*$"))
+					{
+						versionS = versionS[0] + "." + versionS[1] + "." + versionS[2];
+					}
+					Version.TryParse(versionS, out this.settings.LocalLauncherVersion);
 				}
 				XmlElement xmlElement2 = xmlNodes.SelectSingleNode("InstallPath") as XmlElement;
 				xmlElement1 = xmlElement2;
@@ -341,7 +338,12 @@ namespace DSSelfPatch
 				XmlElement xmlElement1 = xmlElement;
 				if (xmlElement != null)
 				{
-					this.settings.RemoteLauncherVersion = Version.Parse(xmlElement1.InnerText);
+					String versionS = xmlElement.InnerText;
+					if (Regex.IsMatch(versionS, @"^[+-]?\d*$"))
+					{
+						versionS = versionS[0] + "." + versionS[1] + "." + versionS[2];
+					}
+					Version.TryParse(versionS, out this.settings.RemoteLauncherVersion);
 				}
 				streamReader.Close();
 				streamReader.Dispose();
@@ -361,7 +363,7 @@ namespace DSSelfPatch
 		{
 		    foreach (KeyValuePair<int, UserSettings.PatchListDataStruct> patchListDatum in this.settings.PatchListData)
 			{
-				string str = string.Concat(this.settings.InstallPath, "\\", patchListDatum.Value.PatchURL);
+				string str = string.Concat(this.settings.InstallPath, "\\", patchListDatum.Value.PatchName);
 				if (!this.CompareMD5(str, patchListDatum.Value.PatchMD5Hash))
 				{
 					try

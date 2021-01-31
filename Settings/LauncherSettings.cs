@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
@@ -48,8 +49,12 @@ namespace DSLauncherV2
 
                     try
                     {
-                        int[] i = this.UserSettings.Config.LocalLauncherVersion.ToString().ToCharArray().Select(Convert.ToInt32).ToArray();
-                        this.UserSettings.Config.LocalLauncherVersion = new Version(i[0], i[1], i[2]);
+                        if(Regex.IsMatch(this.UserSettings.Config.LocalLauncherStringVersion, @"^[+-]?\d*$"))
+                        {
+                            char[] i = this.UserSettings.Config.LocalLauncherStringVersion.ToCharArray();
+                            this.UserSettings.Config.LocalLauncherStringVersion = i[0]+"."+ i[1]+"."+ i[2];
+                        }
+                        this.UserSettings.Config.LocalLauncherVersion = new Version(this.UserSettings.Config.LocalLauncherStringVersion);
                     }
                     catch
                     {
@@ -177,7 +182,12 @@ namespace DSLauncherV2
                 xmlDocument.Load(streamReader);
                 if (!(xmlDocument.SelectSingleNode("/PatcherData/Settings/launcherversion") is XmlElement xml1))
                     return;
-                Version.TryParse(xml1.InnerText, out Version version);
+                String versionS = xml1.InnerText;
+                if (Regex.IsMatch(versionS, @"^[+-]?\d*$"))
+                {
+                    versionS = versionS[0] + "." + versionS[1] + "." + versionS[2];
+                }
+                Version.TryParse(versionS, out Version version);
                 if (version == null)
                     return;
                 this.UserSettings.RemoteLauncherVersion = version;
